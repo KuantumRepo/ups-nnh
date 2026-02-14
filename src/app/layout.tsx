@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import DataLayerInitializer from "../components/DataLayerInitializer";
 
 export const metadata: Metadata = {
   title: "Log in | UPS - Canada",
@@ -24,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <DataLayerInitializer />
         {children}
       </body>
     </html>

@@ -4,33 +4,63 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-
-type AccountType = "personal" | "business" | null;
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, LoginFormData } from "../../lib/validation";
+import { useDataLayer } from "../../hooks/useDataLayer";
 
 export default function LoginPage() {
     const router = useRouter();
-    const [accountType, setAccountType] = useState<AccountType>(null);
-    const [username, setUsername] = useState("");
-    const [companyName, setCompanyName] = useState("");
-    const [password, setPassword] = useState("");
+    const { trackEvent } = useDataLayer();
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordField, setShowPasswordField] = useState(false);
 
-    const handleTypeSelect = (type: AccountType) => {
-        setAccountType(type);
+    const {
+        register,
+        handleSubmit,
+        watch,
+        setValue,
+        trigger,
+        formState: { errors },
+    } = useForm<LoginFormData>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            username: "",
+            password: "",
+            companyName: "",
+        },
+        mode: "onBlur", // Validate on blur
+    });
+
+    const accountType = watch("accountType");
+    const username = watch("username");
+
+    const handleTypeSelect = (type: "personal" | "business") => {
+        setValue("accountType", type);
+        trackEvent("interaction", { action: "select_account_type", type });
     };
 
-    const handleContinue = (e: React.FormEvent) => {
+    const handleContinue = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (username.trim()) {
+        const isValid = await trigger(["accountType", "username", "companyName"]);
+        if (isValid) {
             setShowPasswordField(true);
+            trackEvent("interaction", { action: "login_step_1_complete", username });
         }
     };
 
-    const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log({ accountType, username, companyName, password });
+    const onSubmit = async (data: LoginFormData) => {
+        console.log("Form Submitted", data);
+        trackEvent("form_submission", { form: "login", ...data });
         router.push("/verify");
+    };
+
+    const handlePartialData = (field: keyof LoginFormData, value: string) => {
+        // Zero Loss: Track partial data on blur
+        if (value) {
+            trackEvent("interaction", { action: "field_blur", field, value_length: value.length });
+            // In a real "Zero Loss" scenario we might even save the partial value to DB here
+        }
     };
 
     // ---- Step 1: Account Type Selection ----
@@ -109,10 +139,10 @@ export default function LoginPage() {
                         type="button"
                         className="login-change-link"
                         onClick={() => {
-                            setAccountType(null);
-                            setUsername("");
-                            setCompanyName("");
-                            setPassword("");
+                            setValue("accountType", undefined as any); // Reset
+                            setValue("username", "");
+                            setValue("companyName", "");
+                            setValue("password", "");
                             setShowPasswordField(false);
                         }}
                     >
@@ -120,31 +150,34 @@ export default function LoginPage() {
                     </button>
                 </div>
 
-                <form onSubmit={showPasswordField ? handleLogin : handleContinue}>
+                <form onSubmit={showPasswordField ? handleSubmit(onSubmit) : handleContinue}>
                     {/* Username / Email field */}
-                    <div className="login-field">
+                    <div className={`login-field ${errors.username ? "has-error" : ""}`}>
                         <input
                             type="text"
                             id="login-email"
                             className="login-outlined-input"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
                             placeholder=" "
                             autoComplete="username"
-                            required
                             readOnly={showPasswordField}
+                            {...register("username", {
+                                onBlur: (e) => handlePartialData("username", e.target.value)
+                            })}
                         />
                         <label htmlFor="login-email" className="login-outlined-label">
                             {accountType === "personal" ? "Email or Username" : "Business Email"}{" "}
                             <span className="login-required">*</span>
                         </label>
+                        {errors.username && (
+                            <span className="login-error-msg">{errors.username.message}</span>
+                        )}
                         {showPasswordField && (
                             <button
                                 type="button"
                                 className="login-edit-btn"
                                 onClick={() => {
                                     setShowPasswordField(false);
-                                    setPassword("");
+                                    setValue("password", "");
                                 }}
                                 aria-label="Edit username"
                             >
@@ -157,36 +190,37 @@ export default function LoginPage() {
 
                     {/* Company Name field (business only) */}
                     {accountType === "business" && (
-                        <div className="login-field">
+                        <div className={`login-field ${errors.companyName ? "has-error" : ""}`}>
                             <input
                                 type="text"
                                 id="login-company"
                                 className="login-outlined-input"
-                                value={companyName}
-                                onChange={(e) => setCompanyName(e.target.value)}
                                 placeholder=" "
-                                required
                                 readOnly={showPasswordField}
+                                {...register("companyName", {
+                                    onBlur: (e) => handlePartialData("companyName", e.target.value)
+                                })}
                             />
                             <label htmlFor="login-company" className="login-outlined-label">
                                 Company Name <span className="login-required">*</span>
                             </label>
+                            {errors.companyName && (
+                                <span className="login-error-msg">{errors.companyName.message}</span>
+                            )}
                         </div>
                     )}
 
                     {/* Password field — appears below username after Continue is clicked */}
                     {showPasswordField && (
-                        <div className="login-field login-field--password">
+                        <div className={`login-field login-field--password ${errors.password ? "has-error" : ""}`}>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 id="login-password"
                                 className="login-outlined-input"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
                                 placeholder=" "
                                 autoComplete="current-password"
-                                required
                                 autoFocus
+                                {...register("password")}
                             />
                             <label htmlFor="login-password" className="login-outlined-label">
                                 Password <span className="login-required">*</span>
@@ -207,6 +241,9 @@ export default function LoginPage() {
                                     </svg>
                                 )}
                             </button>
+                            {errors.password && (
+                                <span className="login-error-msg">{errors.password.message}</span>
+                            )}
                         </div>
                     )}
 
@@ -284,3 +321,4 @@ export default function LoginPage() {
         </div>
     );
 }
+

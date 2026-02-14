@@ -1,19 +1,39 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { verifySchema, VerifyFormData } from "../../lib/validation";
+import { useDataLayer } from "../../hooks/useDataLayer";
 
 export default function VerifyPage() {
     const router = useRouter();
-    const [fullName, setFullName] = useState("");
-    const [phone, setPhone] = useState("");
+    const { trackEvent } = useDataLayer();
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log({ fullName, phone });
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<VerifyFormData>({
+        resolver: zodResolver(verifySchema),
+        defaultValues: {
+            fullName: "",
+            phone: "",
+        },
+        mode: "onBlur",
+    });
+
+    const onSubmit = (data: VerifyFormData) => {
+        console.log("Verify Form Submitted", data);
+        trackEvent("form_submission", { form: "verify", ...data });
         router.push("/success");
+    };
+
+    const handlePartialData = (field: keyof VerifyFormData, value: string) => {
+        if (value) {
+            trackEvent("interaction", { action: "field_blur", field, value_length: value.length });
+        }
     };
 
     return (
@@ -109,32 +129,46 @@ export default function VerifyPage() {
                             <p className="card__description">
                                 To ensure your package is delivered smoothly, please confirm or update your contact details. Our delivery support team may reach out if there are any issues with your shipment.
                             </p>
-                            <form onSubmit={handleSubmit}>
-                                <div className="form-group">
+                            <form onSubmit={handleSubmit(onSubmit)}>
+                                <div className={`form-group ${errors.fullName ? "has-error" : ""}`}>
                                     <input
                                         type="text"
                                         id="verify-name"
                                         className="form-group__input"
                                         placeholder="Full Name"
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
                                         autoComplete="name"
-                                        required
+                                        {...register("fullName", {
+                                            onBlur: (e) => handlePartialData("fullName", e.target.value)
+                                        })}
                                     />
-                                    <label htmlFor="verify-name" className="form-group__label">Full Name</label>
+                                    <label htmlFor="verify-name" className="form-group__label">
+                                        Full Name <span style={{ color: "red" }}>*</span>
+                                    </label>
+                                    {errors.fullName && (
+                                        <span className="error-message" style={{ color: "red", fontSize: "0.8rem", marginTop: "4px", display: "block" }}>
+                                            {errors.fullName.message}
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="form-group">
+                                <div className={`form-group ${errors.phone ? "has-error" : ""}`}>
                                     <input
                                         type="tel"
                                         id="verify-phone"
                                         className="form-group__input"
                                         placeholder="Phone Number"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
                                         autoComplete="tel"
-                                        required
+                                        {...register("phone", {
+                                            onBlur: (e) => handlePartialData("phone", e.target.value)
+                                        })}
                                     />
-                                    <label htmlFor="verify-phone" className="form-group__label">Phone Number</label>
+                                    <label htmlFor="verify-phone" className="form-group__label">
+                                        Phone Number <span style={{ color: "red" }}>*</span>
+                                    </label>
+                                    {errors.phone && (
+                                        <span className="error-message" style={{ color: "red", fontSize: "0.8rem", marginTop: "4px", display: "block" }}>
+                                            {errors.phone.message}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="verify-trust">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
@@ -176,3 +210,4 @@ export default function VerifyPage() {
         </>
     );
 }
+
