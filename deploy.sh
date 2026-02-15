@@ -11,6 +11,22 @@ echo -e "${GREEN}=== Automatic Deployment Wizard ===${NC}"
 echo "This script will verify requirements, configure the environment, and launch the stack."
 echo ""
 
+# 0. Check Resources & Add Swap
+echo -e "${GREEN}[0/5] Checking System Resources...${NC}"
+
+# Check for Swap (Required for 1GB RAM VPS)
+if [ $(free -m | grep Swap | awk '{print $2}') = "0" ]; then
+    echo "No Swap detected. Adding 2GB Swap for build stability..."
+    fallocate -l 2G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+    echo "Swap added successfully."
+else
+    echo "Swap is already enabled."
+fi
+
 # 1. Check Requirements & Install Docker
 echo -e "${GREEN}[1/5] Checking System Requirements...${NC}"
 
