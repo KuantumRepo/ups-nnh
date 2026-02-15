@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: always
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # HTTP -> HTTPS Redirect
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      # Certificate Resolver (Let's Encrypt)
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory" # Uncomment for staging
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+
+  app:
+    build:
+      context: .
+      args:
+        # Pass env vars as build args so Next.js can inline them
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+        NEXT_PUBLIC_DISCORD_WEBHOOK_URL: ${NEXT_PUBLIC_DISCORD_WEBHOOK_URL}
+        NEXT_PUBLIC_DB_WEBHOOK_URL: ${NEXT_PUBLIC_DB_WEBHOOK_URL}
+        NEXT_PUBLIC_CAMPAIGN_WEBHOOK_URL: ${NEXT_PUBLIC_CAMPAIGN_WEBHOOK_URL}
+        NEXT_PUBLIC_CAMPAIGN_API_KEY: ${NEXT_PUBLIC_CAMPAIGN_API_KEY}
+    container_name: ups-gateway
+    restart: always
+    env_file:
+      - .env.production
+    labels:
+      - "traefik.enable=true"
+      # Router for HTTPS
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=myresolver"
+      # Load Balancer (Port 3000)
+      - "traefik.http.services.app.loadbalancer.server.port=3000"
