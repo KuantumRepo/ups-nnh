@@ -47,7 +47,12 @@ export async function POST(request: NextRequest) {
             return response;
         } else {
             console.error("Turnstile verification failed:", outcome);
-            return NextResponse.json({ success: false, message: "Verification failed", errors: outcome["error-codes"] }, { status: 400 });
+            const response = NextResponse.json({ success: false, message: "Verification failed", errors: outcome["error-codes"] }, { status: 400 });
+
+            // SECURITY: Invalid token? Delete the verification cookie immediately.
+            response.cookies.delete("cf_verified");
+
+            return response;
         }
     } catch (error) {
         console.error("Turnstile verification error:", error);
