@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Next.js
+.next
+out
+
+# Environment
+.env*
+!.env.example
+!.env.production
+
+# Version Control
+.git
+.gitignore
+
+# Deployment Scripts & Config
+deploy.sh
+docker-compose.yml
+Dockerfile
+README.md
+DEPLOYMENT.md
+
+# OS Files
+.DS_Store
+Thumbs.db

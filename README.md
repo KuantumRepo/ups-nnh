@@ -61,6 +61,29 @@ To test these scenarios, update `NEXT_PUBLIC_TURNSTILE_SITE_KEY` in `.env.local`
 -   `src/app/page.tsx`: The "Stealth" landing page. Minimalist, branded, secure.
 -   `src/proxy.ts`: **CRITICAL**. The security gatekeeper. Renamed from `middleware.ts` for Next.js 16 compatibility.
 -   `src/app/api/verify-challenge/route.ts`: Backend verification logic. Handles cookie creation/destruction.
+-   `docker-compose.yml`: production orchestration with Traefik.
+-   `deploy.sh`: Interactive deployment script.
+
+## ☁️ Deployment (VPS)
+We provide a **1-Click Deployment Script** for Ubuntu/Debian servers.
+👉 **[Read the Full Deployment Guide](DEPLOYMENT.md)**
+
+### Quick Start
+1.  SSH into your VPS.
+2.  Clone the repository:
+    ```bash
+    git clone <your-repo-url>
+    cd ups
+    ```
+3.  Run the deployment wizard:
+    ```bash
+    chmod +x deploy.sh
+    ./deploy.sh
+    ```
+
+4.  Answer the prompts (Domain, Turnstile Keys, etc.).
+5.  **Done!** Your site will be live securely in minutes.
+
 
 ## 📊 Data Layer & Telemetry
 The application uses a specific **"Single Row Architecture"** to ensure data integrity and zero loss.
