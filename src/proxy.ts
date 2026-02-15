@@ -2,9 +2,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const path = request.nextUrl.pathname;
-    // console.log(`[Middleware] processing path: ${path}`);
 
     // Define paths that ALWAYS allow access (Public)
     const isPublicPath =
@@ -44,7 +43,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
     // Matches everything explicitly to ensure it runs
-    // REMOVED 'api' from exclusion list to protect API routes
     matcher: [
         '/((?!_next/static|_next/image|favicon.ico).*)',
     ],
